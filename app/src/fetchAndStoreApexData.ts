@@ -51,12 +51,16 @@ async function storeApexReading(
 async function fetchAndStoreReadingsForTank(
   client: Client,
   tank: Tank,
-): Promise<void> {
+  numDays?: number,
+  startDate?: Date,
+): Promise<number> {
   console.log(`Fetching from apex at ${tank.apexHost}`);
   const apexReadings = await fetchApexReadings(
     tank.apexHost,
     STOCK_APEX_USERNAME,
     STOCK_APEX_PASSWORD,
+    numDays,
+    startDate,
   );
   console.log(`Found ${apexReadings.length} reading from apex`);
   const storedReadings = (
@@ -65,13 +69,17 @@ async function fetchAndStoreReadingsForTank(
     )
   ).filter((response) => response !== null);
   console.log(`Stored ${storedReadings.length} new readings from apex`);
+  return storedReadings.length;
 }
 
-export default async function fetchAndStoreApexData(): Promise<void> {
+export default async function fetchAndStoreApexData(
+  numDays?: number,
+  startDate?: Date,
+): Promise<number> {
   console.log(
     `Starting fetchAndStoreApexData. Date: ${new Date(Date.now()).toISOString()}`,
   );
-  await usePgClient("tank_data_injector", async (client: Client) => {
+  return await usePgClient("tank_data_injector", async (client: Client) => {
     const dataPromises = await Promise.all([
       fetchParameters(client),
       fetchTanks(client),
@@ -81,8 +89,18 @@ export default async function fetchAndStoreApexData(): Promise<void> {
       parameterCache.set(parameter.apexName, parameter);
     });
     const apexTanks = dataPromises[1].filter((tank) => tank.apexHost !== null);
-    await Promise.all(
-      apexTanks.map((tank) => fetchAndStoreReadingsForTank(client, tank)),
-    );
+    return (
+      await Promise.all(
+        apexTanks.map(
+          async (tank) =>
+            await fetchAndStoreReadingsForTank(
+              client,
+              tank,
+              numDays,
+              startDate,
+            ),
+        ),
+      )
+    ).reduce((agg: number, curr: number) => agg + curr, 0);
   });
 }

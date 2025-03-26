@@ -66,9 +66,13 @@ export default async function fetchApexReadings(
   host: string,
   username: string,
   password: string,
+  numDays?: number,
+  startDate?: Date,
 ): Promise<ApexReading[]> {
-  const numDays = 2;
-  const startDateStr = getStartDay(numDays);
+  const startDateStr = getStartDay(
+    numDays || 2,
+    startDate || new Date(Date.now()),
+  );
 
   const promises = [
     getILogData(host, username, password, startDateStr, numDays + 1),
