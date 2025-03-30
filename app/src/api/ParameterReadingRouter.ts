@@ -1,11 +1,11 @@
 import { Router, Request, Response } from "express";
-import usePgClient from "../usePgClient";
+import usePgClient from "../lib/usePgClient";
 import {
   ParameterReading,
   validate as validateParameterReading,
-} from "../model/ParameterReading";
-import storeParameterReading from "../store/storeParameterReading";
-import ValidationError from "../ValidationError";
+} from "../lib/model/ParameterReading";
+import storeParameterReading from "../lib/store/storeParameterReading";
+import ValidationError from "../lib/ValidationError";
 
 const router = Router();
 
@@ -16,6 +16,7 @@ router.post("/", async (req: Request, res: Response) => {
     parameterReading = validateParameterReading(bodyData);
   } catch (validationError) {
     if (validationError instanceof ValidationError) {
+      console.warn(`Request Body failed validation: ${validationError}`);
       res.status(400).json(validationError.errorObj.format());
       return;
     }
